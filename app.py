@@ -1,36 +1,93 @@
 import os
 from flask import Flask, render_template, url_for, request
 import dash
+import dash_html_components as html
+import dash_core_components as dcc
 import pandas
+import plotly.express as px
+import plotly.graph_objects as go
+from dash.dependencies import Output, Input
+import subprocess
 
-app = Flask(__name__)
+server = Flask(__name__)
 
-app.config.from_pyfile('config.py')
+server.config.from_pyfile('config.py')
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+app = dash.Dash(
+    __name__,
+    server=server,
+    external_stylesheets=external_stylesheets,
+    url_base_pathname='/dash/'
+)
+
+df = pandas.DataFrame({
+    'x': [1, 2, 3],
+    'y': [1, 4, 9],
+    'z': [1, 16, 27]
+})
+
+fig = px.line(data_frame=df, x='x', y=df.columns)
+
+app.layout = html.Div(children=[
+    html.H1(children="SEIR Model", style={'text-align': 'center'}),
+
+    html.Div(children=[
+        html.Label('Days of simulation'),
+        dcc.Input(value=365, type='number', step=1),
+
+        html.Label('Basic reproduction number'),
+        dcc.Input(value=2.2, type='number', step=0.1),
+
+        html.Label('Mixing parameter'),
+        dcc.Input(value=1, type='number', step=0.1),
+
+        html.Label('Latency period'),
+        dcc.Slider(
+            id='latency-period',
+            min=0,
+            max=20,
+            marks={i: 'days' if i == 20 else str(i) for i in range(1, 21)},
+            value=5
+        ),
+
+        html.Label('Infectious period'),
+        dcc.Slider(
+            id='infectious-period',
+            min=0,
+            max=20,
+            marks={i: 'days' if i == 20 else str(i) for i in range(1, 21)},
+            step=1,
+            value=7
+        ),
+
+        html.Label('Immunity period'),
+        dcc.Dropdown(
+            options=[
+                {'label': '1 week', 'value': '1w'},
+                {'label': '1 month', 'value': '1m'},
+                {'label': '6 months', 'value': '6m'},
+                {'label': '1 year', 'value': '1y'},
+                {'label': '5 years', 'value': '5y'},
+                {'label': 'permanent', 'value': 'pm'}
+            ],
+            value='6m'
+        ),
+    ], id='data-input'),
+
+    html.Div(children=dcc.Graph(id="test-graph", figure=fig, animate=True),
+             id='graph-div')
+], style={'columnCount': 1})
 
 
-@app.route('/')
-@app.route('/home', methods=['GET', 'POST'])
-def home():
-    if request.method == 'POST':
-        latency_period = request.form['latencyPeriod']
-        infection_period = request.form['infectiousPeriod']
-        immunity_period = request.form['immunityPeriod']
-        print(f"{latency_period} {infection_period} {immunity_period}")
-        return render_template("home.html", title="home",
-                               alpha="{}".format(round((1 / latency_period)), 5),
-                               beta="{}".format(0.31429),
-                               sigma="{}".format(round(count_days(immunity_period), 5)),
-                               gamma="{}".format(round((1 / infection_period), 5)))
-    else:
-        print("in")
-        return render_template("home.html", title="home",
-                               alpha="{}".format(round((1 / 5), 5)),
-                               beta="{}".format(0.31429),
-                               sigma="{}".format(0.00549),
-                               gamma="{}".format(round((1 / 7), 5)))
+@server.route('/')
+@server.route('/dash')
+def my_dash_app():
+    return app.index()
 
 
-@app.route('/main')
+@server.route('/main')
 def main_simulation():
     return render_template("main.html")
 
@@ -41,4 +98,4 @@ def count_days(immunity_period):
 
 
 if __name__ == '__main__':
-    app.run()
+    server.run()
