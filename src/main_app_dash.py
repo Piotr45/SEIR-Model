@@ -9,22 +9,35 @@ import subprocess
 
 
 class Calculator:
-    def __init__(self, server, external_stylesheets):
+    def __init__(self, server, external_stylesheets, url_path="/dash/"):
         self.app = dash.Dash(
             __name__,
             server=server,
             external_stylesheets=external_stylesheets,
-            url_base_pathname='/dash/'
+            url_base_pathname=url_path
         )
         self.execute_subprocess()
-
         self.__data = self.create_dataframe()
         self.__figure = px.line(data_frame=self.__data, x='Days', y=self.__data.columns)
+        self.app.layout = self.create_layout()
 
     @staticmethod
-    def execute_subprocess():
+    def execute_subprocess(params=None):
         subprocess.call(["gcc", "main.c", "-fopenmp"])
-        subprocess.call(["./a.exe", "0", "365", "2.2", "1", "0.2", "0.31429", "0.14286", "0.00549"])
+        if params is None:
+            subprocess.call(["./a.exe", "0", "365", "2.2", "1", "0.2", "0.31429", "0.14286", "0.00549"])
+        else:
+            try:
+                subprocess.call(["./a.exe", "0",
+                                 str(params[0]),
+                                 str(params[1]),
+                                 str(params[2]),
+                                 str(params[3]),
+                                 str(params[4]),
+                                 str(params[5]),
+                                 str(params[6])])
+            except IndexError:
+                print("IndexError")
 
     @staticmethod
     def read_file(file_name):
@@ -40,12 +53,12 @@ class Calculator:
                 'Recovered': list(map(float, file.readline().split('\t')))
                 }
 
-    def create_dataframe(self, file_name="output.txt"):
+    def create_dataframe(self, file_name="output.txt", days=365):
         __properties = self.read_file(file_name)
 
         dataframe = pandas.DataFrame(
             {
-                'Days': [i for i in range(1, 365, 5)],
+                'Days': [i for i in range(1, days, 5)],
                 'Susceptible': __properties['Susceptible'],
                 'Exposed': __properties['Exposed'],
                 'Infected': __properties['Infected'],
@@ -55,7 +68,7 @@ class Calculator:
         return dataframe
 
     def create_layout(self):
-        self.app.layout = html.Div([
+        return html.Div([
             html.H1(children="SEIR Model", style={'text-align': 'center'}),
 
             html.Label('Days of simulation'),
@@ -66,6 +79,12 @@ class Calculator:
 
             html.Label('Mixing parameter'),
             dcc.Input(value=1, type='number', step=0.1, min=1, id='mixing'),
+
+            html.Label('Latency period'),
+            dcc.Input(value=5, type='number', step=1, id='latency-period', min=2, max=20),
+
+            html.Label('Infectious period'),
+            dcc.Input(value=7, type='number', step=1, id='infectious-period', min=2, max=20),
 
             html.Label('Immunity period'),
             dcc.Dropdown(
@@ -82,25 +101,7 @@ class Calculator:
                 style={"width": "32%"},
             ),
 
-            html.Label('Latency period'),
-            dcc.Slider(
-                id='latency-period',
-                min=0,
-                max=20,
-                marks={i: 'days' if i == 20 else str(i) for i in range(1, 21)},
-                value=5
-            ),
-
-            html.Label('Infectious period'),
-            dcc.Slider(
-                id='infectious-period',
-                min=0,
-                max=20,
-                marks={i: 'days' if i == 20 else str(i) for i in range(1, 21)},
-                step=1,
-                value=7
-            ),
-            dcc.Graph(id="test-graph", figure=fig, animate=True)
+            dcc.Graph(id="test-graph", figure=self.__figure, animate=True)
         ])
 
     @staticmethod
@@ -118,32 +119,16 @@ class Calculator:
         if immunity_period == "pm":
             return -1.00000
 
-    @app.callback(Output("test-graph", 'figure'),
-                  Input('days_of_simulation', 'value'),
-                  Input('reproduction', 'value'),
-                  Input('latency-period', 'value'),
-                  Input('infectious-period', 'value'),
-                  Input('mixing', 'value'),
-                  Input('dropdown', 'value'))
-    def update_output(self, days, reproduction, latency, infectious, mixing, immunity):
-        subprocess.call(["./a.exe", "0", str(days), str(reproduction),
-                         str(mixing), str(1 / latency), str(reproduction * (1 / infectious)), str(1 / infectious),
-                         str(count_days(immunity))])
-
-        file = open("output.txt", "r")
-        ignore, steps = file.readline().split('\t')
-        ignore2 = file.readline()
-        params = file.readline()
-
-        new_df = pandas.DataFrame(
-            {
-                'Days': [i for i in range(1, days, 5)],
-                'Susceptible': list(map(float, file.readline().split('\t'))),
-                'Exposed': list(map(float, file.readline().split('\t'))),
-                'Infected': list(map(float, file.readline().split('\t'))),
-                'Recovered': list(map(float, file.readline().split('\t')))
-            }
-        )
-        file.close()
-        self.__data = new_df
-        return px.line(data_frame=new_df, x='Days', y=self.__data.columns)
+    # @app.callback(Output("test-graph", 'figure'),
+    #               Input('days_of_simulation', 'value'),
+    #               Input('reproduction', 'value'),
+    #               Input('latency-period', 'value'),
+    #               Input('infectious-period', 'value'),
+    #               Input('mixing', 'value'),
+    #               Input('dropdown', 'value'))
+    # def update_output(self, days, reproduction, latency, infectious, mixing, immunity):
+    #     subprocess.call(["./a.exe", "0", str(days), str(reproduction),
+    #                      str(mixing), str(1 / latency), str(reproduction * (1 / infectious)), str(1 / infectious),
+    #                      str(self.count_days(immunity))])
+    #     self.__data = self.create_dataframe()
+    #     return px.line(data_frame=self.__data, x='Days', y=self.__data.columns)
