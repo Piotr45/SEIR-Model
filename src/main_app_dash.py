@@ -3,8 +3,6 @@ import dash_html_components as html
 import dash_core_components as dcc
 import pandas
 import plotly.express as px
-import plotly.graph_objects as go
-from dash.dependencies import Output, Input, State
 import subprocess
 
 
@@ -44,7 +42,7 @@ class Calculator:
         file = open(file_name, "r")
         ignore, steps = file.readline().split('\t')
         return {'Simulation_numbers': ignore,
-                'Steps': steps,
+                'Steps': int(steps),
                 'Number': int(file.readline()),
                 'Params': list(map(float, file.readline().split('\t'))),
                 'Susceptible': list(map(float, file.readline().split('\t'))),
@@ -58,7 +56,7 @@ class Calculator:
 
         dataframe = pandas.DataFrame(
             {
-                'Days': [i for i in range(1, days, 5)],
+                'Days': [i for i in range(1, __properties['Steps'] * 5, 5)],
                 'Susceptible': __properties['Susceptible'],
                 'Exposed': __properties['Exposed'],
                 'Infected': __properties['Infected'],
@@ -95,7 +93,6 @@ class Calculator:
                     {'label': '6 months', 'value': '6m'},
                     {'label': '1 year', 'value': '1y'},
                     {'label': '5 years', 'value': '5y'},
-                    {'label': 'permanent', 'value': 'pm'}
                 ],
                 value='6m',
                 style={"width": "32%"},
@@ -116,19 +113,3 @@ class Calculator:
             return 1 / 365
         if immunity_period == "5y":
             return 1 / (366 + 4 * 365)
-        if immunity_period == "pm":
-            return -1.00000
-
-    # @app.callback(Output("test-graph", 'figure'),
-    #               Input('days_of_simulation', 'value'),
-    #               Input('reproduction', 'value'),
-    #               Input('latency-period', 'value'),
-    #               Input('infectious-period', 'value'),
-    #               Input('mixing', 'value'),
-    #               Input('dropdown', 'value'))
-    # def update_output(self, days, reproduction, latency, infectious, mixing, immunity):
-    #     subprocess.call(["./a.exe", "0", str(days), str(reproduction),
-    #                      str(mixing), str(1 / latency), str(reproduction * (1 / infectious)), str(1 / infectious),
-    #                      str(self.count_days(immunity))])
-    #     self.__data = self.create_dataframe()
-    #     return px.line(data_frame=self.__data, x='Days', y=self.__data.columns)

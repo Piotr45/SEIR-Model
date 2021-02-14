@@ -26,11 +26,19 @@ heuristic_app = heuristic.app
               Input('mixing', 'value'),
               Input('dropdown', 'value'))
 def update_output(days, reproduction, latency, infectious, mixing, immunity):
-    subprocess.call(["./a.exe", "0", str(days), str(reproduction),
+    subprocess.call(["./a.exe", "0", str(days - (days % 5)), str(reproduction),
                      str(mixing), str(1 / latency), str(reproduction * (1 / infectious)), str(1 / infectious),
                      str(calc.count_days(immunity))])
     calc.__data = calc.create_dataframe(days=days)
     return px.line(data_frame=calc.__data, x='Days', y=calc.__data.columns)
+
+
+@heuristic_app.callback(Output("funny-graphs", 'children'),
+                        Input('variety', 'value'),
+                        Input('iterations', 'value'),
+                        Input('rate', 'value'))
+def update_outputs(variety, iterations, rate):
+    return heuristic.reload_plots([variety, iterations, rate])
 
 
 @server.route('/')

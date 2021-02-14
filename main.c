@@ -12,7 +12,7 @@ int survivors=10;
 int numberOfSimulations=100,totalPopulation=10000, startingNumberOfSick=1, cycles;
 int simulationTime = 365;
 int simulationStep =5;
-int iterations =100;//można zmienić
+int iterations = 100;//można zmienić
 double scatter = 0.20;//można zmienić
 int probingPeriod = 10;
 double* maxParams;
@@ -35,7 +35,7 @@ void setParams();
 void trueWrite(FILE * fp, double ***Simulation);
 
 bool cmp(const double* a, const double* b){
-    return *a<*b;
+    return (*a)<(*b);
 }
 enum modes{
     Calculator,
@@ -93,11 +93,12 @@ int main(int argc, char **argv) {
             setParams();
             mallocThings2();
             setPerfect();
+            double*** tmpSimulations = (double ***)malloc(survivors * sizeof(double **));
+            double** tmpParams = (double**)malloc(survivors * sizeof(double*));
             for (int j = 0; j < iterations; ++j) {
                 scoredSeirImplementation(Simulations,params,scores);
                 int* tmp = bestXSimulations(scores, cmp);
-                double*** tmpSimulations = (double ***)malloc(survivors * sizeof(double **));
-                double** tmpParams= (double**)malloc(survivors * sizeof(double*));
+
                 for (int i = 0; i < survivors; ++i) {
                     tmpSimulations[i]=Simulations[tmp[i]];
                     tmpParams[i]=params[tmp[i]];
@@ -107,16 +108,11 @@ int main(int argc, char **argv) {
                     params[tmp[i]]=tmpParams[i];
                 }
                 MuteateAndCross(params);
-                if(j%probingPeriod == 0 && j != 0 ){
+                if(j%probingPeriod == 0 && j != 0 )
                     write2(Simulations,false);
-                    }
-                free(tmpSimulations);
-                free(tmpParams);
             }
             scoredSeirImplementation(Simulations,params,scores);
             int* tmp = bestXSimulations(scores, cmp);
-            double*** tmpSimulations = (double ***)malloc(survivors * sizeof(double **));
-            double** tmpParams= (double**)malloc(survivors * sizeof(double*));
             for (int i = 0; i < survivors; ++i) {
                 tmpSimulations[i]=Simulations[tmp[i]];
                 tmpParams[i]=params[tmp[i]];
@@ -164,7 +160,6 @@ void calculatorRead(char **argv) {
     params[0][5] = atof(argv[4]);
     for (int i = 0; i < paramsLength-2; ++i) {
         params[0][i]=atof(argv[i+5]);
-        printf("%f ", params[0][i]);
     }
 }
 
@@ -293,7 +288,7 @@ int *bestXSimulations(double *score, bool (*compare)(const double *, const doubl
     for(int i=0 ; i < survivors ; ++i){
         compared = score[0];
         out[i]=0;
-        for (int j = i+1; j < numberOfSimulations; ++j) {
+        for (int j = 1; j < numberOfSimulations; ++j) {
             if(compare(&score[j],&compared)){
                 compared= score[j];
                 out[i]=j;
