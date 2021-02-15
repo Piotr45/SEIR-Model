@@ -230,6 +230,7 @@ void scoredSeirImplementation(double ***Simulation, double **parameters, double 
         Simulation[id][1][0]=E;
         Simulation[id][2][0]=I;
         Simulation[id][3][0]=R;
+        score[id] = 0;
         for(int i = 1 ;i < cycles;++i){
             S += (-beta * I * pow((S / totalPopulation), mixingParameter) + sigma * R) * simulationStep;
             Simulation[id][0][i] = S;
